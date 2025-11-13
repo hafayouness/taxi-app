@@ -4,6 +4,7 @@ import { Animated, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { popularPlaces } from "../utils/marker";
 import { taxisData } from "../utils/taxiData";
+import ReservationBottomSheet from "./ReservationBottomSheet";
 
 interface AnimatedTaxi {
   id: number;
@@ -17,6 +18,7 @@ interface AnimatedTaxi {
 }
 
 const MapControls = () => {
+  const [showBottomSheet, setShowBottomSheet] = useState(true);
   const INITIAL_REGION = {
     latitude: 33.5731,
     longitude: -7.5898,
@@ -72,7 +74,7 @@ const MapControls = () => {
   }, [animatedTaxis]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <MapView
         ref={mapRef}
         initialRegion={INITIAL_REGION}
@@ -83,6 +85,9 @@ const MapControls = () => {
         showsTraffic={true}
         showsCompass
         loadingEnabled
+        onPanDrag={() => setShowBottomSheet(false)}
+        onPress={() => setShowBottomSheet(false)}
+        onRegionChangeComplete={() => setShowBottomSheet(true)}
       >
         {popularPlaces.map((place) => (
           <Marker
@@ -153,11 +158,16 @@ const MapControls = () => {
           );
         })}
       </MapView>
+
+      {showBottomSheet && <ReservationBottomSheet delay={0} />}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   taxiMarker: {
     alignItems: "center",
     justifyContent: "center",
@@ -186,31 +196,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
     overflow: "hidden",
-  },
-  bottomSheetContent: {
-    padding: 20,
-    alignItems: "center",
-  },
-  taxiName: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  taxiPhone: {
-    fontSize: 16,
-    marginTop: 8,
-    color: "blue",
-  },
-  reserveButton: {
-    marginTop: 20,
-    backgroundColor: "#FFB800",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-  },
-  reserveButtonText: {
-    color: "black",
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });
 
