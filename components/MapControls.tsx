@@ -1,6 +1,7 @@
+import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { popularPlaces } from "../utils/marker";
 import { taxisData } from "../utils/taxiData";
@@ -25,6 +26,7 @@ const MapControls = () => {
     latitudeDelta: 0.1,
     longitudeDelta: 0.1,
   };
+  const router = useRouter();
 
   const mapRef = useRef<MapView>(null);
 

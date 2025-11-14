@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import Modal from "react-native-modal";
+import BookingScreen from "../components/BockingTaxi";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -22,9 +23,12 @@ const ReservationBottomSheet: React.FC<ReservationBottomSheetProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [reservationTriggered, setReservationTriggered] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,24 +47,85 @@ const ReservationBottomSheet: React.FC<ReservationBottomSheetProps> = ({
             tension: 50,
             useNativeDriver: true,
           }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 6,
+            tension: 50,
+            useNativeDriver: true,
+          }),
         ]).start();
       }, 100);
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [delay, fadeAnim, translateY]);
-
+  }, [delay, fadeAnim, translateY, scaleAnim]);
   const handleReservation = () => {
-    console.log("Réservation demandée");
+    console.log("🚕 Bouton 'Réserver maintenant' cliqué");
+
+    setReservationTriggered(true);
+    setIsVisible(false);
+
+    // Attendre que le modal soit complètement fermé
+    setTimeout(() => {
+      setShowBooking(true);
+      console.log("✅ BookingScreen ouvert");
+    }, 400); // 400ms = temps d'animation Out de react-native-modal
   };
 
   const closeModal = () => {
+    console.log("❌ Fermeture du bottom sheet");
     setIsVisible(false);
     setIsExpanded(false);
   };
 
+  const handleCloseBooking = () => {
+    console.log("🔙 Fermeture du BookingScreen");
+    setShowBooking(false);
+
+    setTimeout(() => {
+      console.log("🔄 Réouverture du bottom sheet");
+      setIsVisible(true);
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          friction: 6,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 200);
+  };
+
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
+
+    if (!isExpanded) {
+      Animated.spring(translateY, {
+        toValue: -10,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(translateY, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
   };
 
   const panResponder = useRef(
@@ -79,115 +144,165 @@ const ReservationBottomSheet: React.FC<ReservationBottomSheetProps> = ({
     })
   ).current;
 
-  return (
-    <Modal
-      isVisible={isVisible}
-      onBackdropPress={closeModal}
-      onSwipeComplete={closeModal}
-      swipeDirection={["down"]}
-      style={styles.modal}
-      backdropOpacity={0.3}
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      useNativeDriverForBackdrop
-    >
-      <View
-        style={[
-          styles.bottomSheetContainer,
-          isExpanded ? styles.expandedContainer : styles.collapsedContainer,
-        ]}
-      >
-        <View {...panResponder.panHandlers} style={styles.handleContainer}>
-          <View style={styles.handleIndicator} />
-        </View>
+  useEffect(() => {
+    console.log("📱 État showBooking changé:", showBooking);
+  }, [showBooking]);
 
+  return (
+    <>
+      <Modal
+        isVisible={isVisible}
+        onBackdropPress={closeModal}
+        onSwipeComplete={closeModal}
+        swipeDirection={["down"]}
+        style={styles.modal}
+        backdropOpacity={0.3}
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        useNativeDriverForBackdrop
+      >
         <Animated.View
           style={[
-            styles.contentContainer,
+            styles.bottomSheetContainer,
+            isExpanded ? styles.expandedContainer : styles.collapsedContainer,
             {
               opacity: fadeAnim,
-              transform: [{ translateY }],
+              transform: [{ translateY }, { scale: scaleAnim }],
             },
           ]}
         >
-          <View style={styles.animationContainer}>
-            <LottieView
-              source={require("../assets/taxi.json")}
-              autoPlay
-              loop
-              style={styles.taxiAnimation}
-            />
+          <View {...panResponder.panHandlers} style={styles.handleContainer}>
+            <View style={styles.handleIndicator} />
           </View>
 
-          <Text style={styles.title}>🚕 Réservation Taxi</Text>
-          <Text style={styles.subtitle}>Petits Taxis Rouges de Casablanca</Text>
-
-          <View style={styles.infoContainer}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>⏱️</Text>
-              <Text style={styles.infoText}>Disponible 24/7</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>💳</Text>
-              <Text style={styles.infoText}>Paiement facile</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.reserveButton}
-            activeOpacity={0.8}
-            onPress={handleReservation}
-          >
-            <Animated.View
-              style={{
+          <Animated.View
+            style={[
+              styles.contentContainer,
+              {
                 opacity: fadeAnim,
-                transform: [
-                  {
-                    scale: fadeAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.9, 1],
-                    }),
-                  },
-                ],
-              }}
-            >
-              <Text style={styles.reserveButtonText}>Réserver maintenant</Text>
-            </Animated.View>
-          </TouchableOpacity>
+                transform: [{ translateY }],
+              },
+            ]}
+          >
+            <View style={styles.animationContainer}>
+              <LottieView
+                source={require("../assets/taxi.json")}
+                autoPlay
+                loop
+                style={styles.taxiAnimation}
+              />
+            </View>
 
-          <TouchableOpacity onPress={toggleExpand} style={styles.expandButton}>
-            <Text style={styles.footerText}>
-              {isExpanded
-                ? "Glissez vers le bas pour réduire"
-                : "Glissez vers le haut pour plus d'options"}
+            <Text style={styles.title}>🚕 Réservation Taxi</Text>
+            <Text style={styles.subtitle}>
+              Petits Taxis Jaunes de Casablanca
             </Text>
-          </TouchableOpacity>
 
-          {isExpanded && (
-            <View style={styles.expandedContent}>
-              <Text style={styles.expandedTitle}>Options supplémentaires</Text>
-              <View style={styles.optionItem}>
-                <Text style={styles.optionIcon}>📍</Text>
-                <Text style={styles.optionText}>
-                  Suivre votre trajet en temps réel
-                </Text>
+            <View style={styles.infoContainer}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoIcon}>⏱️</Text>
+                <Text style={styles.infoText}>Disponible 24/7</Text>
               </View>
-              <View style={styles.optionItem}>
-                <Text style={styles.optionIcon}>⭐</Text>
-                <Text style={styles.optionText}>
-                  Chauffeurs hautement qualifiés
-                </Text>
-              </View>
-              <View style={styles.optionItem}>
-                <Text style={styles.optionIcon}>🔒</Text>
-                <Text style={styles.optionText}>Trajets sécurisés</Text>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoIcon}>💳</Text>
+                <Text style={styles.infoText}>Paiement facile</Text>
               </View>
             </View>
-          )}
+
+            <TouchableOpacity
+              style={styles.reserveButton}
+              activeOpacity={0.8}
+              onPress={handleReservation}
+            >
+              <Animated.View
+                style={{
+                  opacity: fadeAnim,
+                  transform: [
+                    {
+                      scale: fadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <Text style={styles.reserveButtonText}>
+                  Réserver maintenant
+                </Text>
+              </Animated.View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={toggleExpand}
+              style={styles.expandButton}
+            >
+              <Text style={styles.footerText}>
+                {isExpanded
+                  ? "Glissez vers le bas pour réduire"
+                  : "Glissez vers le haut pour plus d'options"}
+              </Text>
+            </TouchableOpacity>
+
+            {isExpanded && (
+              <Animated.View
+                style={[
+                  styles.expandedContent,
+                  {
+                    opacity: fadeAnim,
+                  },
+                ]}
+              >
+                <Text style={styles.expandedTitle}>
+                  Options supplémentaires
+                </Text>
+                <View style={styles.optionItem}>
+                  <Text style={styles.optionIcon}>📍</Text>
+                  <Text style={styles.optionText}>
+                    Suivre votre trajet en temps réel
+                  </Text>
+                </View>
+                <View style={styles.optionItem}>
+                  <Text style={styles.optionIcon}>⭐</Text>
+                  <Text style={styles.optionText}>
+                    Chauffeurs hautement qualifiés
+                  </Text>
+                </View>
+                <View style={styles.optionItem}>
+                  <Text style={styles.optionIcon}>🔒</Text>
+                  <Text style={styles.optionText}>Trajets sécurisés</Text>
+                </View>
+              </Animated.View>
+            )}
+          </Animated.View>
         </Animated.View>
-      </View>
-    </Modal>
+      </Modal>
+
+      {showBooking && (
+        <Modal
+          isVisible={showBooking}
+          style={styles.fullScreenModal}
+          animationIn="slideInRight"
+          animationOut="slideOutRight"
+          animationInTiming={400}
+          animationOutTiming={400}
+          onModalHide={() => {
+            if (reservationTriggered) {
+              setShowBooking(true);
+              setReservationTriggered(false);
+            }
+          }}
+          backdropOpacity={0}
+          useNativeDriverForBackdrop
+          onBackButtonPress={handleCloseBooking}
+        >
+          <View style={styles.fullScreenContainer}>
+            <BookingScreen onClose={handleCloseBooking} />
+          </View>
+        </Modal>
+      )}
+    </>
   );
 };
 
@@ -210,7 +325,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   collapsedContainer: {
-    height: SCREEN_HEIGHT * 0.45,
+    height: SCREEN_HEIGHT * 0.5,
   },
   expandedContainer: {
     height: SCREEN_HEIGHT * 0.9,
@@ -325,6 +440,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#4B5563",
     flex: 1,
+  },
+  fullScreenModal: {
+    margin: 0,
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
   },
 });
 
